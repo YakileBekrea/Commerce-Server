@@ -167,6 +167,7 @@ app.post("/catalog", (req: Request, res: Response) => {
         var file = fs.readFileSync("catalog.json", "utf8")
 
         var randomId = 0;
+        var counter = 0;
 
         while (again)
         {
@@ -182,24 +183,39 @@ app.post("/catalog", (req: Request, res: Response) => {
             {
                 again = false;
             }
+            else
+            {
+                counter++;
+            }
+            if (counter >= 1000)
+            {
+                again = false;
+            }
         }
+        
+        if (counter >= 1000)
+        {
+            const newProduct = {
+                "name": req.body.name,
+                "description": req.body.description,
+                "price": req.body.price,
+                "category": req.body.category,
+                "id": randomId + "",
+                "path": "/catalog/" + randomId
+            }
 
-        const newProduct = {
-            "name": req.body.name,
-            "description": req.body.description,
-            "price": req.body.price,
-            "category": req.body.category,
-            "id": randomId + "",
-            "path": "/catalog/" + randomId
+            file = file.replace("]",",");
+
+            const newCatalog = JSON.parse(file + JSON.stringify(newProduct) + "]");
+
+            fs.writeFileSync("catalog.json", JSON.stringify(newCatalog), "utf-8");
+
+            res.status(201).json(req.body);
         }
-
-        file = file.replace("]",",");
-
-        const newCatalog = JSON.parse(file + JSON.stringify(newProduct) + "]");
-
-        fs.writeFileSync("catalog.json", JSON.stringify(newCatalog), "utf-8");
-
-        res.status(201).json(req.body);
+        else
+        {
+            res.status(400).send("It appears that the catalog is full. Old listings must be deleted before more can be added.")
+        }
     }
     else
     {
