@@ -167,7 +167,7 @@ app.post("/catalog", (req: Request, res: Response) => {
         var file = fs.readFileSync("catalog.json", "utf8")
 
         var randomId = 0;
-        
+
         var counter = 0;
 
         while (again)
@@ -194,7 +194,7 @@ app.post("/catalog", (req: Request, res: Response) => {
             }
         }
         
-        if (counter >= 1000)
+        if (counter <= 1000)
         {
             const newProduct = {
                 "name": req.body.name,

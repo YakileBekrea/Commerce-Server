@@ -124,6 +124,7 @@ app.post("/catalog", (req, res) => {
         var again = true;
         var file = fs_1.default.readFileSync("catalog.json", "utf8");
         var randomId = 0;
+        var counter = 0;
         while (again) {
             randomId = Math.floor(Math.random() * 1000);
             console.log(randomId);
@@ -132,19 +133,30 @@ app.post("/catalog", (req, res) => {
             if (JSON.stringify(filtered) === "[]") {
                 again = false;
             }
+            else {
+                counter++;
+            }
+            if (counter >= 1000) {
+                again = false;
+            }
         }
-        const newProduct = {
-            "name": req.body.name,
-            "description": req.body.description,
-            "price": req.body.price,
-            "category": req.body.category,
-            "id": randomId + "",
-            "path": "/catalog/" + randomId
-        };
-        file = file.replace("]", ",");
-        const newCatalog = JSON.parse(file + JSON.stringify(newProduct) + "]");
-        fs_1.default.writeFileSync("catalog.json", JSON.stringify(newCatalog), "utf-8");
-        res.status(201).json(req.body);
+        if (counter <= 1000) {
+            const newProduct = {
+                "name": req.body.name,
+                "description": req.body.description,
+                "price": req.body.price,
+                "category": req.body.category,
+                "id": randomId + "",
+                "path": "/catalog/" + randomId
+            };
+            file = file.replace("]", ",");
+            const newCatalog = JSON.parse(file + JSON.stringify(newProduct) + "]");
+            fs_1.default.writeFileSync("catalog.json", JSON.stringify(newCatalog), "utf-8");
+            res.status(201).json(req.body);
+        }
+        else {
+            res.status(400).send("It appears that the catalog is full. Old listings must be deleted before more can be added.");
+        }
     }
     else {
         res.send("Your input is invalid. Make sure your JSON is formatted correctly and has the required fields.");
