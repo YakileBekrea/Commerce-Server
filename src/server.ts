@@ -167,6 +167,7 @@ app.post("/catalog", (req: Request, res: Response) => {
         var file = fs.readFileSync("catalog.json", "utf8")
 
         var randomId = 0;
+        
         var counter = 0;
 
         while (again)
