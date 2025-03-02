@@ -5,17 +5,12 @@ import helmet from "helmet"
 import { ParsedQs } from "qs";
 import bodyParser from "body-parser";
 
+
+//We open on default port 3000
 const app: Express = express();
 const port = 3000;
-const categories = [
-    "cool",
-    "cleaning",
-    "appliances",
-    "food",
-    "rawmaterial",
-    "tools"
-]
 
+//This middleware function logs the request and where it comes from.
 const logger = function(req: Request, res: Response, next: Function) {
     console.log("Incoming request from: "+ req.ip);
     console.log(req.method + " " +  req.path)
@@ -23,12 +18,15 @@ const logger = function(req: Request, res: Response, next: Function) {
     next();
 }
 
+//This middleware function checks the validity of POST request data.
 const errorCheck = function(req: Request, res: Response, next: Function)
 {
     valid = true;
 
     if (req.method === "POST")
     {
+        //43 is the max size string we can display, so we we cap it at that. Also make sure the string actually has
+        //length.
         if (req.body.name.length === 0 || req.body.name.length > 43)
         {
             valid = false;
@@ -55,19 +53,22 @@ const errorCheck = function(req: Request, res: Response, next: Function)
     next();
 }
 
+//This is used for error checking later on.
 var valid = true;
 
+//Set up our middleware and handlebars
 app.use(bodyParser());
 app.use(errorCheck)
 app.use(logger)
 app.use(express.json())
-app.set("views", "templates");
 
+app.set("views", "templates");
 app.engine("handlebars", engine());
 app.set("view engine", "handlebars");
 
 app.use(helmet());
 
+//Basic get request. Just read the file and display everything.
 app.get("/catalog", (req: Request, res: Response) => {
 
     const catalog = JSON.parse(fs.readFileSync("catalog.json", "utf-8"))
@@ -78,16 +79,24 @@ app.get("/catalog", (req: Request, res: Response) => {
     });
 });
 
+//if user goes to just the domain name, take them to /catalog
 app.get("/", (req: Request, res: Response) => {
     res.redirect("/catalog");
 });
 
+//Show the user to the about page.
 app.get("/about", (req: Request, res: Response) => {
     res.render("about.handlebars");
 })
 
+//This route is for the search functionality.
 app.get("/catalog/search", (req: Request, res: Response) => {
 
+    //Search and invalid are used to handle what to display.
+    //invalid causes the error message to appear when true,
+    //Search is used to enable the search bar.
+    //Active is disabled when there is no query parameters sent,
+    //so we don't display any results at all.
     const search = true;
     var invalid = false;
     var active = false;
@@ -96,6 +105,8 @@ app.get("/catalog/search", (req: Request, res: Response) => {
 
     console.log(catalog);
 
+    //We don't want to filter if there's nothing in the query field, so we check that
+    //and then filter.
     if (req.query.category !== undefined && req.query.category !== "")
     {
         active = true;
@@ -104,6 +115,7 @@ app.get("/catalog/search", (req: Request, res: Response) => {
     }
     if (req.query.name !== undefined && req.query.name !== "")
     {
+        //
         active = true;
         var name = JSON.stringify(req.query.name);
         name = name.substring(1, name.length-1);
@@ -111,6 +123,8 @@ app.get("/catalog/search", (req: Request, res: Response) => {
         console.log(catalog);
     }
 
+    //if after filtering catalog is empty, then our query was invalid
+    //(No results)
     if (JSON.stringify(catalog) === "[]")
     {
         invalid = true;
@@ -134,11 +148,14 @@ app.get("/catalog/search", (req: Request, res: Response) => {
     }
 });
 
+//Route for displaying just a single product.
 app.get("/catalog/:id", (req: Request, res: Response) => {
     
+    //Get just that product.
     const catalog = JSON.parse(fs.readFileSync("catalog.json", "utf-8")).filter(
         (i: { id: string | ParsedQs | (string | ParsedQs)[] | undefined; }) => i.id === req.params.id)
 
+    //If not found.
     if(JSON.stringify(catalog) == "[]")
     {
         const invalid = true;
@@ -149,7 +166,7 @@ app.get("/catalog/:id", (req: Request, res: Response) => {
             invalid
         })
     }
-    else
+    else //If found
     {
         res.render("details.handlebars", {
             req,
@@ -158,8 +175,10 @@ app.get("/catalog/:id", (req: Request, res: Response) => {
     }
 });
 
+//Post route for adding a product to the catalog.
 app.post("/catalog", (req: Request, res: Response) => {
     
+    //Check if middleware validated the request.
     if (valid)
     {
         var again = true;
@@ -170,6 +189,8 @@ app.post("/catalog", (req: Request, res: Response) => {
 
         var counter = 0;
 
+        //Keep generating random ids until we get one that works.
+        //If this goes on too long, exit as a failsafe.
         while (again)
         {
             randomId = Math.floor(Math.random() * 1000);
@@ -194,6 +215,7 @@ app.post("/catalog", (req: Request, res: Response) => {
             }
         }
         
+        //If we didn't exit as failsafe
         if (counter <= 1000)
         {
             const newProduct = {
@@ -215,17 +237,19 @@ app.post("/catalog", (req: Request, res: Response) => {
         }
         else
         {
-            res.status(400).send("It appears that the catalog is full. Old listings must be deleted before more can be added.")
+            res.status(500).send("It appears that the catalog may be full. Old listings should be deleted before more can be added.")
         }
     }
     else
     {
-        res.send("Your input is invalid. Make sure your JSON is formatted correctly and has the required fields.")
+        res.status(400).send("Your input is invalid. Make sure your JSON is formatted correctly and has the required fields.")
     }
 });
 
+//Update a product.
 app.put("/catalog/:id", (req: Request, res: Response) => {
 
+    //Check if everything is valid.
     if (!isNaN(req.body.price) && req.body.name.length <= 43 && req.body.name.length !== 0 && req.body.description !== "")
     {
         const file = fs.readFileSync("catalog.json", "utf8");
@@ -255,6 +279,7 @@ app.put("/catalog/:id", (req: Request, res: Response) => {
     }
 });
 
+//Deleting a product
 app.delete("/catalog/:id", (req: Request, res: Response) => {
     const file = fs.readFileSync("catalog.json", "utf8");
 
@@ -262,6 +287,7 @@ app.delete("/catalog/:id", (req: Request, res: Response) => {
 
     const newCatalog = catalog.filter((catalog: { id: string; }) => catalog.id !== req.params.id);
 
+    //If there was nothing filtered out, then there was nothing to delete.
     if (catalog === newCatalog)
     {
         res.status(400).send("There is nothing to delete at" + req.params.id);
@@ -275,6 +301,7 @@ app.delete("/catalog/:id", (req: Request, res: Response) => {
     
 });
 
+//Start 'er up!
 app.listen(port, () => {
     console.log("[server]: Server is running at http://localhost:" + port);
 });
