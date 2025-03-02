@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<body>
+    {{#if search}}
+        <form action="/catalog/search" method="get" style="background-color:aliceblue; border-style:double; padding:10px">
+        <label for="category">Category:</label>
+        <input type="text" id="category" name="category"><br><br>
+        <label for="name">Name:</label>
+        <input type="text" id="name" name="name"><br><br>
+        <input type="submit" value="Search" id="submit">
+        </form>
+    {{/if}}
+    {{#if invalid}}
+        <div style="background-color:aliceblue; border-style:double; padding:10px">
+        <p>
+            It seems we couldn't find anything with those parameters.
+        </p>
+        <p>
+            Check your parameters and try again.
+        </p>
+        </div>
+    {{/if}}
+    {{#each catalog}}
+        <div style="display:inline-block; background-color:aliceblue; border-style:double; padding:10px; width:300px; height:100px">
+        <p>
+            {{name}}
+        </p>
+        <div class="price">
+            ${{price}}
+        </div>
+        <a href={{path}}>
+            Details
+        </a>
+        </div>
+    {{/each}}
+</body>
